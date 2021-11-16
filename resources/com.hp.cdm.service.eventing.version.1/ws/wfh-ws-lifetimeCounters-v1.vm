@@ -1,0 +1,90 @@
+{
+    "id": "$dataExtractor.getRandomRequestId()",
+    "specversion": "1.0",
+    "source": "/device/telemetry",
+    "type": "com.hp.stratus.telemetry.event.type.device",
+    "datacontenttype": "application/cloudevents+json",
+    "dataschema": "https://schemaregistry.analysis.ext.hp.com/cdm/gun/com.hp.cdm.domain.eventing.notification.type.version.1.schema.json",
+    "subject": "wfh-ws-lifeTimeCounters-v1",
+    "time": "$dataExtractor.getThisInstant()",
+    "data": {
+        "originator": {
+            "originatorDetail": {
+                "version": "1.2.0",
+                "modelNumber": "$dataExtractor.deviceInfo.modelNumber",
+                "serialNumber": "${dataExtractor.deviceInfo.serialNumber}",
+                "firmwareVersion": "$dataExtractor.getDeviceInfo().getFirmwareVersion()",
+                "deviceUuid": "${dataExtractor.getDeviceInfo().getUuid()}"
+            },
+            "originatorDetailType": "com.hp.cdm.service.eventing.resource.eventNotification.type.originatorDetail.version.1"
+        },
+        "events": [
+            {
+                #set($Consumables = $dataExtractor.getNodesUsingXpath("/supplies:Supplies/supplies:AgentList/sup:Agent"))
+                "dateTime": "$dataExtractor.getThisInstant()",
+                "eventDetailType": "com.hp.cdm.service.eventing.resource.eventDetail.type.lifetimeCounterSnapshot.version.1",
+                "eventCategory": "lifetimeCounterSnapshot",
+                "sequenceNumber": $dataExtractor.getSequenceNumberForEvent(),
+                "eventDetail": {
+                    "version": "1.0.0",
+                    "deviceInfo": {
+                        "deviceSupplyLifetimes": [
+                            #foreach($item in $Consumables)
+                            {
+                                "supplyColorCode": "$dataExtractor.getValue("SupplyColorCode",$dataExtractor.getStringValueUsingXpath("/supplies:Supplies/supplies:AgentList/sup:Agent[$foreach.count]/dd:MarkerColor"))",
+                                "supplySlot": 1,
+                                "supplyType": "$dataExtractor.getValue("SupplyType",$dataExtractor.getStringValueUsingXpath("/supplies:Supplies/supplies:AgentList/sup:Agent[$foreach.count]/dd:ConsumableTypeEnum"))"
+                            }
+                            #if($foreach.hasNext),#end
+                            #end
+                        ]
+                        #set($CounterGroups = $dataExtractor.getNodesUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup"))
+
+                        #foreach($item in $CounterGroups)
+                            #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$foreach.count]/dd:CounterGroupName") == "A4EquivalentImpressions")
+                                #set($Counters = $dataExtractor.getNodesUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$foreach.count]/ct:Counter"))
+                                #set($parentLoopCounter = $foreach.count)
+                                #foreach($item in $Counters)
+                                    #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:CounterName") == "TotalImpressions")
+                                    #set($a4TotalSignificand = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Significand"))
+                                    #set($a4TotalExponent = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Exponent"))
+                                    ,"a4EquivalentImpressionCount": $dataExtractor.getRoundedIntValue("${a4TotalSignificand}.$a4TotalExponent")
+                                    #end
+                                    #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:CounterName") == "ColorImpressions")
+                                    #set($a4ColorSignificand = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Significand"))
+                                    #set($a4ColorExponent = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Exponent"))
+                                    ,"a4EquivalentColorImpressionCount": $dataExtractor.getRoundedIntValue("${a4ColorSignificand}.$a4ColorExponent")
+                                    #end
+                                #if($foreach.hasNext)#end
+                                #end
+                            #end
+                            #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$foreach.count]/dd:CounterGroupName") ==  "Sheets")
+                                #set($Counters = $dataExtractor.getNodesUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$foreach.count]/ct:Counter"))
+                                #set($parentLoopCounter = $foreach.count)
+                                #foreach($item in $Counters)
+                                    #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:CounterName") == "TotalSheets")
+                                    #set($sheetCountSignificand = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Significand"))
+                                    #set($sheetCountExponent = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Exponent"))
+                                    ,"sheetCount": $dataExtractor.getRoundedIntValue("${sheetCountSignificand}.$sheetCountExponent")
+                                    #end
+                                    #if($dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:CounterName") == "DuplexSheets")
+                                    #set($duplexCountSignificand = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Significand"))
+                                    #set($duplexCountExponent = $dataExtractor.getStringValueUsingXpath("/dusi:DeviceUsageService/dusi:PrinterSubunit/ct:CounterGroup[$parentLoopCounter]/ct:Counter[$foreach.count]/dd:FixedPointNumber/dd:Exponent"))
+                                    ,"duplexSheetCount": $dataExtractor.getRoundedIntValue("${duplexCountSignificand}.$duplexCountExponent")
+                                    #end
+                                    #if($foreach.hasNext)#end
+                                #end
+                            #end
+                        #if($foreach.hasNext)#end
+                        #end
+                    }
+                }
+            }
+        ],
+        "version": "1.2.0",
+        "gateway": {
+            "entityWppId":"$dataExtractor.deviceInfo.cloudId",
+            "version":"1.0.0"
+        }
+    }
+}

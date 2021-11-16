@@ -1,0 +1,67 @@
+{
+    "id": "$dataExtractor.getRandomRequestId()",
+    "specversion": "1.0",
+    "source": "/device/telemetry",
+    "type": "com.hp.stratus.telemetry.event.type.device",
+    "datacontenttype": "application/cloudevents+json",
+    "dataschema": "https://schemaregistry.analysis.ext.hp.com/cdm/gun/com.hp.cdm.domain.eventing.notification.type.version.1.schema.json",
+    "subject": "wfh-ledm-lifeTimeCounters-v1",
+    "time": "$dataExtractor.getThisInstant()",
+    "data": {
+        "originator": {
+            "originatorDetail": {
+                "version": "1.2.0",
+                "modelNumber": "$dataExtractor.deviceInfo.modelNumber",
+                "serialNumber": "${dataExtractor.deviceInfo.serialNumber}",
+                "firmwareVersion": "$dataExtractor.getDeviceInfo().getFirmwareVersion()",
+                "deviceUuid": "${dataExtractor.getDeviceInfo().getUuid()}"
+            },
+            "originatorDetailType": "com.hp.cdm.service.eventing.resource.eventNotification.type.originatorDetail.version.1"
+        },
+        "events": [
+            {
+                #set($Consumables = $dataExtractor.getNodesUsingXpath("/ccdyn:ConsumableConfigDyn/ccdyn:ConsumableInfo"))
+                "eventDetailType": "com.hp.cdm.service.eventing.resource.eventDetail.type.lifetimeCounterSnapshot.version.1",
+                "eventCategory": "lifetimeCounterSnapshot",
+                "eventDetail": {
+                    "version": "1.0.0",
+                    "deviceInfo": {
+                        "deviceSupplyLifetimes": [
+                            #foreach($item in $Consumables)
+                            {
+                                "supplyColorCode": "$dataExtractor.getStringValueUsingXpath("/ccdyn:ConsumableConfigDyn/ccdyn:ConsumableInfo[$foreach.count]/dd:ConsumableLabelCode")",
+                                "supplySlot": $dataExtractor.getSupplySlotUsingXpath("/ccdyn:ConsumableConfigDyn/ccdyn:ConsumableInfo[$foreach.count]/dd:ConsumableStation"),
+                                "supplyType": "$dataExtractor.getValue("SupplyType",$dataExtractor.getStringValueUsingXpath("/ccdyn:ConsumableConfigDyn/ccdyn:ConsumableInfo[$foreach.count]/dd:ConsumableTypeEnum"))"
+                            }
+                            #if($foreach.hasNext),#end
+                            #end
+                        ],
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:TotalImpressions"))
+                        "impressionCount": $dataExtractor.getIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:TotalImpressions"),
+                        #end
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:ColorImpressions"))
+                        "colorImpressionCount": $dataExtractor.getIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:ColorImpressions"),
+                        #end
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:A4EquivalentImpressions/dd:TotalImpressions"))
+                        "a4EquivalentImpressionCount": $dataExtractor.getRoundedIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:A4EquivalentImpressions/dd:TotalImpressions"),
+                        #end
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:A4EquivalentImpressions/dd:ColorImpressions"))
+                        "a4EquivalentColorImpressionCount": $dataExtractor.getRoundedIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:A4EquivalentImpressions/dd:ColorImpressions"),
+                        #end
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:SimplexSheets"))
+                        "sheetCount": $dataExtractor.getIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:SimplexSheets"),
+                        #end
+                        #if($dataExtractor.doesExists("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:DuplexSheets"))
+                        "duplexSheetCount": $dataExtractor.getIntValueUsingXpath("/pudyn:ProductUsageDyn/pudyn:PrinterSubunit/dd:DuplexSheets")
+                        #end
+                    }
+                }
+            }
+        ],
+        "version": "1.2.0",
+        "gateway": {
+            "entityWppId":"$dataExtractor.deviceInfo.cloudId",
+            "version":"1.0.0"
+        }
+    }
+}
